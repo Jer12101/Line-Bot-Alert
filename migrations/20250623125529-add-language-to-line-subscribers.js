@@ -12,6 +12,7 @@ module.exports = {
     await queryInterface.addColumn('line_subscribers', 'language', {
       type: Sequelize.STRING,
       allowNull: true,
+      defaultValue: 'en'
     });
   },
 
