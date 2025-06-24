@@ -76,7 +76,34 @@ export class LineController {
             await this.lineService.pushMessage(userId, report);
             continue;
         }
+        if (event.type === 'follow') {
+            const userId = event.source.userId;
 
+            // Save new subscriber (with optional default language)
+            await this.subscriberService.createOrUpdate(userId, { language: 'en' });
+
+            // Send bilingual welcome
+            await this.lineService.pushMessage(userId, `
+            ❓ 歡迎! 以下是本機器人目前提供的指令：
+        • /頭條 - TechCrunch 電子報推播
+        • /天氣 [城市] - 查詢當地天氣
+        • /時間 [城市] - 查詢當地時間
+        • /股票 [股票代碼] - 查詢股價與前一次收盤價
+        • /訂閱 - 訂閱每日早晨九點電子報通知
+        • /取消訂閱
+        • /語言 正體中文 或 /language en – 更改語言偏好
+
+❓ Available Commands:
+        • /news - Get the latest headlines
+        • /weather [city] - Weather report for a city
+        • /time [city] - Local time for major cities
+        • /stock [symbol] - View stock details
+        • /subscribe - Subscribe to auto news
+        • /unsubscribe - Stop auto news
+        • /language en or /語言 正體中文 – Change your preferred language`
+            );
+            return;
+        }
 
 
 
@@ -103,16 +130,28 @@ export class LineController {
             break;
         }
         
+        
+
 
         default:
             await this.lineService.pushMessage(userId, 
-                `❓ Available Commands:
-                • /news - Get the latest headlines
-                • /weather [city] - Weather report for a city
-                • /time [city] - Local time for major cities
-                • /stock [symbol] - View stock details
-                • /subscribe - Subscribe to auto news
-                • /unsubscribe - Stop auto news`
+                `❓ 歡迎! 以下是本機器人目前提供的指令：
+        • /頭條 - TechCrunch 電子報推播
+        • /天氣 [城市] - 查詢當地天氣
+        • /時間 [城市] - 查詢當地時間
+        • /股票 [股票代碼] - 查詢股價與前一次收盤價
+        • /訂閱 - 訂閱每日早晨九點電子報通知
+        • /取消訂閱
+        • /語言 正體中文 或 /language en – 更改語言偏好
+
+❓ Available Commands:
+        • /news - Get the latest headlines
+        • /weather [city] - Weather report for a city
+        • /time [city] - Local time for major cities
+        • /stock [symbol] - View stock details
+        • /subscribe - Subscribe to auto news
+        • /unsubscribe - Stop auto news
+        • /language en or /語言 正體中文 – Change your preferred language`
             );
         }
     }

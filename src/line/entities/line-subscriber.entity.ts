@@ -8,4 +8,9 @@ export class LineSubscriber extends Model {
 
     @Column({ allowNull: true })
     declare subscribed_at: Date;
+
+    // 👇 Add this new language column
+    @Column({ allowNull: true })
+    declare language: string;
+    
 }

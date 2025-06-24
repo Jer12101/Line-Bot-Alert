@@ -10,6 +10,14 @@ export class LineSubscriberService {
         private subscriberModel: typeof LineSubscriber,
     ) {}
 
+    async createOrUpdate(userId: string, data: Partial<LineSubscriber>) {
+        await this.subscriberModel.upsert({
+            user_id: userId,
+            ...data,
+        });
+    }
+
+
     async subscribe(userId: string): Promise<boolean> {
         try {
             const result = await this.subscriberModel.create({
