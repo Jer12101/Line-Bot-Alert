@@ -22,60 +22,17 @@ export class LineController {
 
     for (const event of events) {
         const text = event.message?.text?.trim().toLowerCase();
+        if (!text) continue;
+
+        // Normalize localized commands to English for unified handling
+        const normalizedCommand = text
+            .replace(/^\/時間/, '/time')
+            .replace(/^\/天氣/, '/weather')
+            .replace(/^\/股價/, '/stock')
+            .replace(/^\/語言/, '/language')
+            .replace(/^\/幫助/, '/help');
         const userId = event.source?.userId;
 
-        if (!userId || event.type !== 'message') continue;
-
-        console.log('📥 Raw event:', JSON.stringify(event, null, 2));
-        console.log('🔤 Parsed text:', text);
-
-        if (text.startsWith('/weather')) {
-            const city = text.split(' ').slice(1).join(' ') || 'Taipei';
-            const report = await this.weatherService.getWeather(city);
-            await this.lineService.pushMessage(userId, report);
-            continue;
-        }
-
-        if (text.startsWith('/time')) {
-            const city = text.split(' ').slice(1).join(' ').trim();
-
-            if (!city) {
-                const list = this.clockService.getTimeList();
-                await this.lineService.pushMessage(userId, list);
-            } else {
-                const normalized = city.toLowerCase().replace(/\s+/g, '');
-                const reply = this.clockService.getTime(normalized);
-                await this.lineService.pushMessage(userId, reply);
-            }
-
-            continue;
-        }
-
-        if (text.startsWith('/stock')) {
-            const query = text.split(' ').slice(1).join(' ');
-
-            if (!query) {
-                await this.lineService.pushMessage(userId, `
-            💡 Usage: /stock [symbol or company name]
-
-            Examples:
-            • /stock AAPL – Apple
-            • /stock TSLA – Tesla
-            • /stock TSM – TSMC
-            `);
-                continue;
-            }
-
-            const symbol = await this.stockService.lookupSymbol(query);
-            if (!symbol) {
-                await this.lineService.pushMessage(userId, `❌ Could not find stock for: "${query}"`);
-                continue;
-            }
-
-            const report = await this.stockService.getQuote(symbol);
-            await this.lineService.pushMessage(userId, report);
-            continue;
-        }
         if (event.type === 'follow') {
             const userId = event.source.userId;
 
@@ -105,6 +62,84 @@ export class LineController {
             return;
         }
 
+        if (!userId || event.type !== 'message') continue;
+
+        console.log('📥 Raw event:', JSON.stringify(event, null, 2));
+        console.log('🔤 Parsed text:', text);
+
+        if (normalizedCommand.startsWith('/weather')) {
+            const city = normalizedCommand.split(' ').slice(1).join(' ') || 'Taipei';
+            const report = await this.weatherService.getWeather(city);
+            await this.lineService.pushMessage(userId, report);
+            continue;
+        }
+
+        if (normalizedCommand.startsWith('/time')) {
+            const city = normalizedCommand.split(' ').slice(1).join(' ').trim();
+
+            if (!city) {
+                const list = this.clockService.getTimeList();
+                await this.lineService.pushMessage(userId, list);
+            } else {
+                const normalized = city.toLowerCase().replace(/\s+/g, '');
+                const reply = this.clockService.getTime(normalized);
+                await this.lineService.pushMessage(userId, reply);
+            }
+
+            continue;
+        }
+
+        if (normalizedCommand.startsWith('/stock')) {
+            const query = normalizedCommand.split(' ').slice(1).join(' ');
+
+            if (!query) {
+                await this.lineService.pushMessage(userId, `
+            💡 Usage: /stock [symbol or company name]
+
+            Examples:
+            • /stock AAPL – Apple
+            • /stock TSLA – Tesla
+            • /stock TSM – TSMC
+            `);
+                continue;
+            }
+
+            const symbol = await this.stockService.lookupSymbol(query);
+            if (!symbol) {
+                await this.lineService.pushMessage(userId, `❌ Could not find stock for: "${query}"`);
+                continue;
+            }
+
+            const report = await this.stockService.getQuote(symbol);
+            await this.lineService.pushMessage(userId, report);
+            continue;
+        }
+        
+
+        if (text.startsWith('/language')) {
+            const lang = text.split(' ')[1]?.toLowerCase();
+            if (lang !== 'en' && lang !== 'zh') {
+                await this.lineService.pushMessage(userId, '❌ Language not supported. Try `/language en` or `/language zh`');
+                return;
+            }
+
+            await this.subscriberService.setLanguage(userId, lang);
+            await this.lineService.pushMessage(userId, lang === 'zh'
+    ? '✅ 已切換為正體中文'
+    : '✅ Language set to English');
+            return;
+        }
+
+        if (text.startsWith('/語言')) {
+            const lang = text.split(' ')[1]?.trim();
+            const zhMatch = lang.includes('中文') || lang.includes('正體');
+
+            await this.subscriberService.setLanguage(userId, zhMatch ? 'zh' : 'en');
+            await this.lineService.pushMessage(userId, zhMatch
+                ? '✅ 語言已設為正體中文'
+                : '✅ Language set to English');
+        return;
+        }
 
 
         switch (text) {

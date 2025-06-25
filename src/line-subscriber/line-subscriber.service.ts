@@ -17,6 +17,13 @@ export class LineSubscriberService {
         });
     }
 
+    async setLanguage(userId: string, language: 'en' | 'zh') {
+        await LineSubscriber.upsert({
+            user_id: userId,
+            language,
+        });
+    }
+
 
     async subscribe(userId: string): Promise<boolean> {
         try {

@@ -1,6 +1,7 @@
 import * as moment from 'moment-timezone';
 import * as cityTimezones from 'city-timezones';
 import { Injectable } from '@nestjs/common';
+import { formatTime, formatTimeList } from 'src/templates/time.templates';
 
 @Injectable()
 export class ClockService {
@@ -20,32 +21,36 @@ export class ClockService {
         beijing: { label: 'Beijing', tz: 'Asia/Shanghai' },
     };
 
-    getTime(city: string): string {
-    const cityQuery = city.trim();
+    getTime(city: string, lang: 'en' | 'zh' = 'en'): string {
+        const cityQuery = city.trim();
 
-    const matches = cityTimezones.lookupViaCity(cityQuery);
-    const bestMatch = matches[0]; // or do fuzzy ranking later
+        const matches = cityTimezones.lookupViaCity(cityQuery);
+        const bestMatch = matches[0]; // or do fuzzy ranking later
 
-    if (!bestMatch) {
-        return `⚠️ Unknown city or timezone: "${city}"`;
+        if (!bestMatch) {
+            return lang === 'zh'
+            ? `⚠️ 無法辨識的城市或時區：「${city}」`
+            : `⚠️ Unknown city or timezone: "${city}"`;
+        }
+
+        const zone = bestMatch.timezone;
+        const now = moment().tz(zone).format('dddd, MMM D, YYYY h:mm A');
+
+        return formatTime(bestMatch.city, now, zone, lang);
     }
-
-    const zone = bestMatch.timezone;
-    const now = moment().tz(zone).format('dddd, MMM D, YYYY h:mm A');
-
-    return `🕒 Time in ${bestMatch.city}, ${bestMatch.country}:\n${now} (${zone})`;
-}
 
 
     
-    getTimeList(): string {
+    getTimeList(lang: 'en' | 'zh' = 'en'): string {
         const now = moment();
-        const lines = Object.values(this.cityToTimeZoneMap).map(entry => {
-            const time = now.tz(entry.tz).format('HH:mm');
-            return `${entry.label}: ${time}`;
-    });
+        const timeEntries = Object.values(this.cityToTimeZoneMap).map(entry => {
+            return {
+                label: entry.label,
+                time: now.tz(entry.tz).format('HH:mm'),
+            }
+        });
 
-    return `🕒 World Clock:\n${lines.join('\n')}`;
+        return formatTimeList(timeEntries, lang);
     }
 
 
