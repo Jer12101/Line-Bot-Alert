@@ -50,5 +50,9 @@ export class LineSubscriberService {
         return ids;
     }
 
+    async findByUserId(userId: string): Promise<LineSubscriber | null> {
+        return this.subscriberModel.findByPk(userId);
+    }
+
 }
 

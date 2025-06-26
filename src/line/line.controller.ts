@@ -23,6 +23,11 @@ export class LineController {
     for (const event of events) {
         const text = event.message?.text?.trim().toLowerCase();
         if (!text) continue;
+        
+        let userId = event.source?.userId;
+        const subscriber = await this.subscriberService.findByUserId(userId);
+        const lang = (subscriber?.language === 'zh' ? 'zh' : 'en') as 'en' | 'zh'; // language preference saved in the database, defaults to en
+
 
         // Normalize localized commands to English for unified handling
         const normalizedCommand = text
@@ -31,10 +36,10 @@ export class LineController {
             .replace(/^\/股價/, '/stock')
             .replace(/^\/語言/, '/language')
             .replace(/^\/幫助/, '/help');
-        const userId = event.source?.userId;
+        
 
         if (event.type === 'follow') {
-            const userId = event.source.userId;
+            userId = event.source.userId; // cannot redeclare block-scoped variable 'userId': don't declare it as const multiple times
 
             // Save new subscriber (with optional default language)
             await this.subscriberService.createOrUpdate(userId, { language: 'en' });
@@ -45,7 +50,7 @@ export class LineController {
         • /頭條 - TechCrunch 電子報推播
         • /天氣 [城市] - 查詢當地天氣
         • /時間 [城市] - 查詢當地時間
-        • /股票 [股票代碼] - 查詢股價與前一次收盤價
+        • /股價 [股票代碼] - 查詢股價與前一次收盤價
         • /訂閱 - 訂閱每日早晨九點電子報通知
         • /取消訂閱
         • /語言 正體中文 或 /language en – 更改語言偏好
@@ -69,7 +74,7 @@ export class LineController {
 
         if (normalizedCommand.startsWith('/weather')) {
             const city = normalizedCommand.split(' ').slice(1).join(' ') || 'Taipei';
-            const report = await this.weatherService.getWeather(city);
+            const report = await this.weatherService.getWeather(city, lang);
             await this.lineService.pushMessage(userId, report);
             continue;
         }
@@ -78,11 +83,11 @@ export class LineController {
             const city = normalizedCommand.split(' ').slice(1).join(' ').trim();
 
             if (!city) {
-                const list = this.clockService.getTimeList();
+                const list = this.clockService.getTimeList(lang);
                 await this.lineService.pushMessage(userId, list);
             } else {
                 const normalized = city.toLowerCase().replace(/\s+/g, '');
-                const reply = this.clockService.getTime(normalized);
+                const reply = this.clockService.getTime(normalized, lang);
                 await this.lineService.pushMessage(userId, reply);
             }
 
